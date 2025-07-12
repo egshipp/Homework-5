@@ -78,3 +78,11 @@ ggplot(data = new_heart, aes(x = MaxHR, y = Age, color = factor_HeartDisease)) +
 
 Based on the visual evidence, it would be appropriate to use an interaction model because the slopes of the lines are not parallel, thus, indicating that there is interaction between the two predictor variables. 
 
+# Task 4: Testing and Training
+```{r}
+heart_split <- initial_split(new_heart, prop = 0.8)
+heart_train <- training(heart_split)
+heart_test <- testing(heart_split)
+```
+
+# Task 5: OLS and LASSO
