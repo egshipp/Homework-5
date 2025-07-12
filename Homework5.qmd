@@ -39,6 +39,8 @@ library(tidyverse)
 library(tidymodels)
 library(caret)
 library(yardstick)
+library(ggplot2)
+library(viridis)
 
 data <- read_csv("heart.csv")
 
@@ -61,4 +63,18 @@ new_heart <- data |>
   mutate(factor_HeartDisease = factor(HeartDisease)) |>
   select(-ST_Slope, -HeartDisease)
 ```
+
+# Task 3: EDA
+## 1. We are going to model someone’s age (our response variable) as a function of heart disease and their max heart rate. First, create the appropriate scatterplot to visualize this relationship. Add a line to the scatterplot that represents if someone has or does not have heart disease. Remove the standard error bars from the lines and add appropriate labels. Also, change the color pallet to be more colorblind friendly.
+
+```{r}
+ggplot(data = new_heart, aes(x = MaxHR, y = Age, color = factor_HeartDisease)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F) +
+  theme_minimal() +
+  scale_color_viridis_d()
+```
+## 2. Based on visual evidence, do you think an interaction model or an additive model is more appropriate? Justify your answer.
+
+Based on the visual evidence, it would be appropriate to use an interaction model because the slopes of the lines are not parallel, thus, indicating that there is interaction between the two predictor variables. 
 
