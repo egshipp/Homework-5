@@ -86,3 +86,87 @@ heart_test <- testing(heart_split)
 ```
 
 # Task 5: OLS and LASSO
+## 1. Regardless of your answer in Task 3, we are going to fit an interaction model. First fit an interaction model (named ols_mlr) with age as your response, and max heart rate + heart disease as your explanatory variables using the training data set using ordinary least squares regression. Report the summary output.
+```{r}
+ols_mlr <- lm(Age ~ MaxHR*factor_HeartDisease, data = new_heart)
+
+summary(ols_mlr)
+```
+## 2. We are going to use RMSE to evaluate this model’s predictive performance on new data. Test your model on the testing data set. Calculate the residual mean square error (RMSE) and report it below.
+
+```{r}
+predicted_ols <- predict(ols_mlr, newdata = heart_test)
+
+rmse <- sqrt(mean((heart_test$Age - predicted_ols)^2))
+rmse
+```
+
+## 3. Now, we are going to see if a model fit using LASSO has better predictive performance than with OLS.
+```{r}
+
+LASSO_recipe <- recipe(Age ~ MaxHR + factor_HeartDisease, data = heart_train) |>
+  step_dummy(factor_HeartDisease) |>
+  step_normalize(MaxHR) |>
+  step_interact(terms = ~ MaxHR:starts_with("factor_HeartDisease"))
+
+ LASSO_recipe
+  
+```
+## 4. Now, set up your appropriate spec, and grid. Next, select your final model, and report the results using the tidy() function around your model name.
+```{r}
+heart_cv_folds <- vfold_cv(heart_train, 10)
+
+LASSO_spec <- linear_reg(penalty = tune(), mixture = 1) |>
+  set_engine("glmnet")
+
+LASSO_wkf <- workflow() |>
+  add_recipe(LASSO_recipe) |>
+  add_model(LASSO_spec)
+
+LASSO_grid <- LASSO_wkf |>
+  tune_grid(resamples = heart_cv_folds,
+            grid = grid_regular(penalty(), levels = 30)) 
+
+lowest_rmse <- LASSO_grid |>
+  select_best(metric = "rmse")
+lowest_rmse
+
+LASSO_wkf |>
+  finalize_workflow(lowest_rmse)
+
+LASSO_final <- LASSO_wkf |>
+  finalize_workflow(lowest_rmse) |>
+  fit(heart_train) 
+  
+tidy(LASSO_final)
+
+```
+
+## 5. Without looking at the RMSE calculations, would you expect the RMSE calculations to be roughly the same or different? Justify your answer using output from your LASSO model.
+
+I would expect the RMSE calculations to be roughly the same because the predictors from the LASSO model remained the same as the predictors for the OLS model.
+
+## 6. Now compare the RMSE between your OLS and LASSO model and show that the RMSE calculations were roughly the same.
+```{r}
+LASSO_rmse <- LASSO_wkf |>
+  finalize_workflow(lowest_rmse) |>
+  last_fit(heart_split) |>
+  collect_metrics() |>
+  filter(.metric == "rmse") |>
+  mutate(model = "LASSO") |>
+  select(-.config)
+
+OLS_rmse <- sqrt(mean((heart_test$Age - predicted_ols)^2))
+
+OLS_rmse_tbl <- tibble(
+  .metric = "rmse",
+  .estimator = "standard",
+  .estimate = OLS_rmse,
+  model = "OLS"
+)
+
+rbind(LASSO_rmse, OLS_rmse_tbl)
+```
+
+## 7. Why are the RMSE calculations roughly the same if the coefficients for each model are different?
+The LASSO model attempts to simplify the model by reducing the coefficients to be smaller or near zero while the OLS model uses the coefficients fully. Even though they are each using different processes to simplify the model, they both balance out the errors to come to a similar RMSE.
