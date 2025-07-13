@@ -34,7 +34,7 @@ editor: visual
 
 ## Packages and Data
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(tidyverse)
 library(tidymodels)
 library(caret)
@@ -177,7 +177,8 @@ The LASSO model attempts to simplify the model by reducing the coefficients to b
 LR1_rec <- recipe(factor_HeartDisease ~ RestingBP+MaxHR, data = heart_train) |>
   step_normalize(RestingBP, MaxHR) 
 
-LR2_rec <- recipe(factor_HeartDisease ~ Sex + Age + Cholesterol + RestingBP, data = heart_train) |>
+LR2_rec <- recipe(factor_HeartDisease ~ Sex + Age + Cholesterol + RestingBP,
+                  data = heart_train) |>
   step_dummy(Sex) |>
   step_normalize(RestingBP, Age, Cholesterol)
 
