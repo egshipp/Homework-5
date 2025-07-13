@@ -170,3 +170,59 @@ rbind(LASSO_rmse, OLS_rmse_tbl)
 
 ## 7. Why are the RMSE calculations roughly the same if the coefficients for each model are different?
 The LASSO model attempts to simplify the model by reducing the coefficients to be smaller or near zero while the OLS model uses the coefficients fully. Even though they are each using different processes to simplify the model, they both balance out the errors to come to a similar RMSE.
+
+# Task 6: Logistic Regression
+## 1. Propose two different logistic regression models with heart disease as our response.
+```{r}
+LR1_rec <- recipe(factor_HeartDisease ~ RestingBP+MaxHR, data = heart_train) |>
+  step_normalize(RestingBP, MaxHR) 
+
+LR2_rec <- recipe(factor_HeartDisease ~ Sex + Age + Cholesterol + RestingBP, data = heart_train) |>
+  step_dummy(Sex) |>
+  step_normalize(RestingBP, Age, Cholesterol)
+
+LR_spec <- logistic_reg() |>
+ set_engine("glm")
+
+LR1_wkf <- workflow() |>
+ add_recipe(LR1_rec) |>
+ add_model(LR_spec)
+LR2_wkf <- workflow() |>
+ add_recipe(LR2_rec) |>
+ add_model(LR_spec)
+
+LR1_fit <- LR1_wkf |>
+ fit_resamples(heart_cv_folds, metrics = metric_set(accuracy, mn_log_loss))
+
+LR2_fit <- LR2_wkf |>
+ fit_resamples(heart_cv_folds, metrics = metric_set(accuracy, mn_log_loss))
+
+rbind(LR1_fit |> collect_metrics(),
+ LR2_fit |> collect_metrics()) |>
+ mutate(Model = c("Model1", "Model1", "Model2", "Model2")) |>
+ select(Model, everything())
+
+
+```
+Model 2 is shown to be the best performing model as it uses more predictors while Model 1 is much simpler and may not be able to distinguish between people with and without heart disease as easily.
+
+## 2. Lastly, check how well your chosen model does on the test set using the confusionMatrix() function.
+```{r}
+LR_train_fit <- LR2_wkf |>
+ fit(heart_train)
+
+conf_mat(heart_train |> mutate(estimate = LR_train_fit |> predict(heart_train) 
+                               |> pull()), 
+ factor_HeartDisease,
+ estimate)
+```
+## 3. Next, identify the values of sensitivity and specificity, and interpret them in the context of the problem
+
+```{r}
+specificity <- 181/(181+145)
+
+sensitivity <- 328/(328+80)
+
+rbind(specificity, sensitivity)
+```
+This model correctly identifies about 55.6% of patients that do not have heart disease correctly and about 80% of people that do have heart disease correctly. 
